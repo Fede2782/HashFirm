@@ -137,7 +137,7 @@ def is_valid(start: str, end: str) -> bool:
     
     return True
 
-def get_combinations(start: str, end: str) -> list[str]:
+def get_combinations(start: str, end: str, is_csc: bool = False, check_beta: bool = False) -> list[str]:
     start = start.upper()
     end = end.upper()
     start_list: list[str] = list(start)
@@ -168,6 +168,9 @@ def get_combinations(start: str, end: str) -> list[str]:
     is_same_feature: bool = feature_start == feature_end
 
     combos: list = []
+
+    if check_beta:
+        is_same_major = False
 
     if is_same_feature:
         if is_same_rp:
@@ -220,6 +223,8 @@ def get_combinations(start: str, end: str) -> list[str]:
 
             else: # not same major
                 major_list: list[str] = seq_gen(majors, major_start, major_end)
+                if check_beta:
+                    major_list.append("Z")
                 for m in major_list:
                     for i in get_combinations(feature_start+rp_start+m+year_start+month_start+build_start, feature_end+rp_end+m+year_end+month_end+build_end):
                         combos.append(i)
@@ -230,17 +235,19 @@ def get_combinations(start: str, end: str) -> list[str]:
                     combos.append(i)
     else: # not same feature
         feature_list: list[str] = ["S", "U"]
+        if is_csc:
+            feature_list.remove("S")
         for f in feature_list:
             for i in get_combinations(f+rp_start+major_start+year_start+month_start+build_start, f+rp_end+major_end+year_end+month_end+build_end):
                 combos.append(i)
 
     return combos
 
-def gen_build_combos(start: str, end: str, modem: bool) -> list[tuple]:
-    combos: list[str] = get_combinations(start, end)
+def gen_build_combos(start: str, end: str, modem: bool, also_beta: bool = False) -> list[tuple]:
+    combos: list[str] = get_combinations(start, end, check_beta=also_beta)
     ap_csc_list: list = []
     for c in combos:
-        for i in get_combinations(start,end):
+        for i in get_combinations(start,end, is_csc=True, check_beta=also_beta):
             e = list(i)
             e.pop(0)
             f: str = ""
@@ -259,7 +266,7 @@ def gen_build_combos(start: str, end: str, modem: bool) -> list[tuple]:
 def gen_full_build(model: str, csc: str, combos: list[tuple], modem: bool):
     csc = csc.upper()
     model = model.upper()
-    if csc == "EUX":
+    if csc == "EUX" or csc == "ITV":
         mcsc: str = "OXM"
         omc: str = "XX"
     else: #TODO: handle different CSCs
@@ -278,22 +285,23 @@ def gen_full_build(model: str, csc: str, combos: list[tuple], modem: bool):
 #print(get_combinations("U8CXLM", "S8CXLZ"))
 #print(gen_build_combos("U8CXLM", "U8CXLN", True))
 
-def sherlock_main(model: str, csc, start, end, modem): #-> list[str]:
+def sherlock_main(model: str, csc, start, end, modem, do_beta: bool = False): #-> list[str]:
     model = model.upper()
     csc = csc.upper()
     start = start.upper()
     end = end.upper()
     if "SM-" in model:
         model.replace("SM-", "")
-    builds: list[str] = gen_full_build(model, csc, gen_build_combos(start, end, modem), modem)
+    builds: list[str] = gen_full_build(model, csc, gen_build_combos(start, end, modem, also_beta=do_beta), modem)
     return builds
 
-def sherlock_write(model: str, csc, start, end, modem, out): #-> list[str]:
+def sherlock_write(model: str, csc, start, end, modem, out, do_beta = "False"): #-> list[str]:
     model = model.upper()
     csc = csc.upper()
     start = start.upper()
     end = end.upper()
     modem = modem.upper()
+    do_beta = do_beta.upper()
     if "SM-" in model:
         model = model.replace("SM-", "")
         #print(model)
@@ -301,7 +309,11 @@ def sherlock_write(model: str, csc, start, end, modem, out): #-> list[str]:
         modem = True
     else:
         modem = False
-    builds: list[str] = gen_full_build(model, csc, gen_build_combos(start, end, modem), modem)
+    if do_beta == "TRUE":
+        do_beta = True
+    else:
+        do_beta = False
+    builds: list[str] = gen_full_build(model, csc, gen_build_combos(start, end, modem, also_beta=do_beta), modem)
     with open(out, 'w') as f:
         for b in builds:
             f.write(f"{b}\n")
@@ -309,8 +321,11 @@ def sherlock_write(model: str, csc, start, end, modem, out): #-> list[str]:
 #sherlock_main("A346B", "EUX", "U7CXLM", "U7CXLN", False, "builds.txt")
 
 if __name__ == "__main__":
-    if len(args) != 7:
+    if len(args) != 7 and len(args) != 8:
         print("Not enough arguments")
         print("Expected: MODEL CSC START END MODEM OUT_FILE")
     else:
-        sherlock_write(args[1], args[2], args[3], args[4], args[5], args[6])
+        if len(args) == 7:
+            sherlock_write(args[1], args[2], args[3], args[4], args[5], args[6])
+        elif len(args) == 8:
+            sherlock_write(args[1], args[2], args[3], args[4], args[5], args[6], args[7])

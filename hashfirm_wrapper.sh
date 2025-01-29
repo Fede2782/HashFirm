@@ -15,15 +15,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-if [ "$#" != 5 ]; then
+if [ "$#" != 5 ] && [ "$#" != 6 ]; then
     #echo "Usage: bash sherlock_wrapper.sh <CSC> <MODEL> <START> <END>"
-    echo "Usage: bash sherlock_wrapper.sh <MODEL> <CSC> <START> <END> <MODEM>"
+    echo "Usage: bash hashfirm_wrapper.sh <MODEL> <CSC> <START> <END> <MODEM> <CHECK_BETA>"
     exit 1
 fi
 
-HASHES=($(curl https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.test.xml | grep fwsize | sed 's/<value rcount=//' | sed 's/<\/value>//' | grep -oP "'\d+' fwsize='\d+'>\K[a-f0-9]{32}"))
+#HASHES=($(curl https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.test.xml | grep fwsize | sed 's/<value rcount=//' | sed 's/<\/value>//' | grep -oP "'\d+' fwsize='\d+'>\K[a-f0-9]{32}"))
+HASHES=($(curl -s https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.test.xml | grep fwsize | sed -E 's/.*'\''[0-9]+'\'' fwsize='\''[0-9]+'\''>//' | sed -E 's/<\/value>//'))
 
-python3 sherlock_engine.py $1 $2 $3 $4 $5 builds.txt
+if [ "$#" == 5 ]; then
+  python3 hashfirm_engine.py $1 $2 $3 $4 $5 builds.txt
+elif [ "$#" == 6 ]; then
+  python3 hashfirm_engine.py $1 $2 $3 $4 $5 builds.txt $6
+fi
 
 for i in $(cat builds.txt)
 do
@@ -34,7 +39,7 @@ do
 
     for hs in "${HASHES[@]}"
     do
-        if [[ "$HASH" == "$hs"* ]]; then
+        if [[ "$HASH" == *"$hs"* ]]; then
         found=true
         #HASHES -= "$HASH"
         fi
@@ -46,3 +51,4 @@ do
 
 done
 
+rm builds.txt
