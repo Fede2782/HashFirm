@@ -30,25 +30,33 @@ elif [ "$#" == 6 ]; then
   python3 hashfirm_engine.py $1 $2 $3 $4 $5 builds.txt $6
 fi
 
-for i in $(cat builds.txt)
-do
-    #echo $i
-    HASH="$(echo -n "$i" | md5sum | sed 's/ -//' )"
-    #echo $HASH
-    found=false
+if [[ -e builds.txt ]]; then
 
-    for hs in "${HASHES[@]}"
-    do
-        if [[ "$HASH" == *"$hs"* ]]; then
-        found=true
-        #HASHES -= "$HASH"
-        fi
-    done
+  for i in $(cat builds.txt)
+  do
+      #echo $i
+      HASH="$(echo -n "$i" | md5sum | sed 's/ -//' )"
+      #echo $HASH
+      found=false
 
-    if $found; then
-        echo "Found $i!"
-    fi
+      for hs in "${HASHES[@]}"
+      do
+          if [[ "$HASH" == *"$hs"* ]]; then
+          found=true
+          #HASHES -= "$HASH"
+          fi
+      done
 
-done
+      if $found; then
+          echo "Found $i!"
+      fi
 
-rm builds.txt
+  done
+
+else
+
+  echo "ERROR: No build.txt found. Cannot continue. Please check for errors"
+
+fi
+
+[[ -e builds.txt ]] && rm builds.txt
