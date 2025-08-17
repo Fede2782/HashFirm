@@ -65,12 +65,12 @@ def is_valid(start: str, end: str) -> bool:
         print("ERROR: Start value or end value is not provided correctly!")
         return False
     
-    if start_list[0] not in ("U", "S", "E"):
+    if start_list[0] not in ("U", "S", "E", "T"):
         print("ERROR: Start value not valid!")
         print("Unknown feature flag")
         return False
 
-    if end_list[0] not in ("U", "S", "E"):
+    if end_list[0] not in ("U", "S", "E", "T"):
         print("ERROR: End value not valid!")
         print("Unknown feature flag")
         return False
@@ -234,9 +234,11 @@ def get_combinations(start: str, end: str, is_csc: bool = False, check_beta: boo
                 for i in get_combinations(feature_start+m+major_start+year_start+month_start+build_start, feature_end+m+major_end+year_end+month_end+build_end):
                     combos.append(i)
     else: # not same feature
-        feature_list: list[str] = ["S", "U", "E"]
+        feature_list: list[str] = ["S", "U", "E", "T"]
         if is_csc:
-            feature_list.remove("S", "E")
+            feature_list.remove("S")
+            feature_list.remove("E")
+            feature_list.remove("T")
         for f in feature_list:
             for i in get_combinations(f+rp_start+major_start+year_start+month_start+build_start, f+rp_end+major_end+year_end+month_end+build_end):
                 combos.append(i)
